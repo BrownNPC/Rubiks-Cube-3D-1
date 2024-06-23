@@ -12,19 +12,20 @@ import magiccube
 import magiccube.solver.basic
 from magiccube.solver.basic.basic_solver import BasicSolver
 
+
 def solution_from_file_scramble(solving_method: str):
     
     cube = magiccube.Cube(3)
-
     cube.rotate(conf.get('default_scramble'))
+    
+    shuffled_cube_state = str(cube).replace("\n", "").replace(" ", "") # OOYYYRGWWYRRWOOGGRGYBRRRBGBYOBWBWYBYROWBYOBWGBGROWGOGW
 
     solution = BasicSolver(cube).solve()
-    
     sol_tmp = []
     for move in solution:
         sol_tmp.append(str(move))
-
     conf['beginner_solve'] = " ".join(sol_tmp)
+
 
 
 

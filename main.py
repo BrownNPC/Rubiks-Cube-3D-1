@@ -4,12 +4,13 @@ from threading import Thread
 import time
 
 from config import conf
-import util
 
 class Game(Ursina.__closure__[0].cell_contents):
     def __init__(self):
         super().__init__()
-        # window.fullscreen = True
+        self.animate_turns = True
+        
+        self.last_toggle = time.time()
         Entity(model='quad', scale=60, texture='white_cube', texture_scale=(60, 60), rotation_x=90, y=-5,
                color=color.light_gray)  # plane
         Entity(model='sphere', scale=100, texture='textures/sky0', double_sided=True)  # sky
@@ -17,7 +18,7 @@ class Game(Ursina.__closure__[0].cell_contents):
 
         camera.world_position = (0, 0, -15)
         self.model, self.texture = 'models/custom_cube', 'textures/rubik_texture'
-        self.default_move_speed=0.1
+        self.default_move_speed=0.3
         self.load_game()
 
     def load_game(self):
@@ -46,11 +47,11 @@ class Game(Ursina.__closure__[0].cell_contents):
         self.animation_time = self.default_move_speed
         self.action_trigger = True
         self.action_mode = True
-        self.message = Text(origin=(0, 19), color=color.white)
-        self.toggle_game_mode()
-        
-    def solve_cube(self):
-        Thread(target=self.perform_moves, kwargs={'move_string': conf.get('beginner_solve'), 'animate': True}).start()
+        self.message = Text(origin=(0, 0), color=color.white)
+        self.toggle_anim()
+        window.fullscreen = True
+    def solve_cube(self, method:str):
+        Thread(target=self.perform_moves, kwargs={'move_string': conf.get(method)}).start()
         ...
 
     def rotate_side_without_animation(self, side_name, rotation_deg= 90):
@@ -66,11 +67,14 @@ class Game(Ursina.__closure__[0].cell_contents):
 
         invoke(self.toggle_animation_trigger, delay=0.007)
 
-    def toggle_game_mode(self):
-        '''switching view mode or interacting with Rubik's cube'''
-        msg = dedent('S to shuffle    M to Reset').strip()
-        self.message.text = msg
+    def toggle_anim(self):
+        '''switching Rubik's cube turn animation'''
+        self.animate_turns = not self.animate_turns
 
+        msg = dedent('S to shuffle | M to Reset | B for beginner | C for CFOP | K for Kociemba | O to toggle animation').strip()
+        
+        self.message.text = msg
+        self.message.origin = (0,19)
     def toggle_animation_trigger(self):
         '''prohibiting side rotation during rotation animation'''
         self.action_trigger = not self.action_trigger
@@ -112,7 +116,9 @@ class Game(Ursina.__closure__[0].cell_contents):
             self.load_game()
             ...
 
-    def perform_moves(self,move_string: str, animate =True):
+    def perform_moves(self,move_string: str):
+        animate = self.animate_turns
+        start_time = time.perf_counter()
         """
         move_string = 'R L R'
         """
@@ -150,7 +156,7 @@ class Game(Ursina.__closure__[0].cell_contents):
                 self.rotate_side(move[0], rotation_deg) # rotate using move letter
             else:
                 self.rotate_side_without_animation(move[0], rotation_deg)
-
+        
     def input(self, key, *released):
        
         if key in 'mouse1 mouse3' and self.action_mode and self.action_trigger:
@@ -161,15 +167,20 @@ class Game(Ursina.__closure__[0].cell_contents):
                     # self.rotate_side(collider_name)
                     break
         if key == 's' and self.action_trigger :
-            Thread(target=self.perform_moves, kwargs={'move_string': conf.get('default_scramble'), 'animate': True}).start()          
+            Thread(target=self.perform_moves, kwargs={'move_string': conf.get('default_scramble')}).start()          
         if key == 'm' :
             self.reset_cube()
-        if key == 'r' and self.action_trigger:
-            Thread(target=self.perform_moves, kwargs={'move_string': "R' D2 B' U2 D F B U F' R F L2 B D' B2 R2 U2 B2 L2 U2", 'animate': True}).start()     
-            print('balls')
-        if key == 'q' and self.action_trigger:
-            print('balls')
-            self.solve_cube()     
+
+        if key == 'b' and self.action_trigger:
+            self.solve_cube('beginner_solve')     
+        if key == 'c' and self.action_trigger:
+            self.solve_cube('cfop_solve')     
+        if key == 'k' and self.action_trigger:
+            self.solve_cube('20_move_solve')     
+        if key == 'o' and time.time()-self.last_toggle > 0.1 :
+            self.last_toggle = time.time()
+            self.animate_turns = not self.animate_turns
+
         super().input(key)
 
 
