@@ -1,2 +1,5 @@
 ursina
 
+rubik_solver
+
+magiccube
